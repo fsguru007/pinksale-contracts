@@ -76,10 +76,11 @@ contract Presale is Ownable {
     uint tokenDecimals;
     address public pcsRouter = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
     mapping(address => bool) public whitelisted;
+    mapping(address => uint) private userClaims;
 
     uint claimedTeamVesting = 0;
-    bool finished = false;
     uint finishedTime = 0;
+    bool finished = false;
     
     PresaleData presaleData;
 
@@ -140,12 +141,31 @@ contract Presale is Ownable {
     }
 
     function claim() external {
-        require (contributes[msg.sender] > 0, "You have not contributed");
-        require (block.timestamp >= presaleData.end_time, "The presale is still active");
+        require (contributes[msg.sender] > 0, "You have no contributes");
+        require (finished, "The presale is still active");
         require (collected >= presaleData.hardcap, "The presale failed");
 
-        IERC20(presaleData.token).transfer(msg.sender, contributes[msg.sender] * presaleData.presale_rate / (10 ** (18 - tokenDecimals)));
-        contributes[msg.sender] = 0;
+        uint amount = contributes[msg.sender] * presaleData.presale_rate / (10 ** (18 - tokenDecimals));
+
+        require (amount > userClaims[msg.sender], "You claimed all");
+
+        if (presaleData.presaleVesting) {
+            uint claimable = amount * presaleData.presaleVestingData.firstRelease / 100 + amount * (block.timestamp - finishedTime) / presaleData.presaleVestingData.cycle * presaleData.presaleVestingData.cycleRelease / 100;
+
+            if (claimable > amount) {
+                claimable = amount;
+            }
+
+            require (claimable > userClaims[msg.sender], "You cannot claim yet");
+
+            IERC20(presaleData.token).transfer(msg.sender, claimable - userClaims[msg.sender]);
+
+            userClaims[msg.sender] = claimable;
+
+        } else {
+            IERC20(presaleData.token).transfer(msg.sender, amount);
+            userClaims[msg.sender] = amount;
+        }
     }
 
     function withdraw() external {
@@ -213,7 +233,9 @@ contract Presale is Ownable {
 
         require (block.timestamp >= firstReleaseTime, "You can't claim yet");
 
-        uint claimableAmount = presaleData.teamVestingData.total * presaleData.teamVestingData.firstRelease / 100 + (block.timestamp - firstReleaseTime) / presaleData.teamVestingData.cycle * presaleData.teamVestingData.cycleRelease - claimedTeamVesting;
+        uint cycleRelease = presaleData.teamVestingData.total * presaleData.teamVestingData.cycleRelease / 100;
+
+        uint claimableAmount = presaleData.teamVestingData.total * presaleData.teamVestingData.firstRelease / 100 + (block.timestamp - firstReleaseTime) / presaleData.teamVestingData.cycle * cycleRelease - claimedTeamVesting;
 
         if (claimableAmount + claimedTeamVesting > presaleData.teamVestingData.total) {
             claimableAmount = presaleData.teamVestingData.total - claimedTeamVesting;
@@ -222,9 +244,5 @@ contract Presale is Ownable {
         claimedTeamVesting += claimableAmount;
 
         IERC20(presaleData.token).transfer(payable(to), claimableAmount);
-    }
-
-    function claimTokens() external {
-        
     }
 }
