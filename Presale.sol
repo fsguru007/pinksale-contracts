@@ -71,7 +71,6 @@ struct PresaleData {
 
 contract Presale is Ownable {
 
-    address[] public contributors;
     mapping(address => uint) public contributes;
     uint public collected = 0;
     uint tokenDecimals;
@@ -134,7 +133,6 @@ contract Presale is Ownable {
             payable(user).transfer(returnAmount);
         }
 
-        contributors.push(user);
         contributes[user] = contributeAmount;
     }
 

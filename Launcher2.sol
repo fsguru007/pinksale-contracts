@@ -18,8 +18,6 @@ contract Launcher is Ownable {
     address public feeTo;
     uint public minPresaleTime = 3600;
     uint public maxPresaleTime = 3600 * 24 * 30;
-    address[] public failedPresales;
-    address[] public succeededPresales;
 
     address[] public routers;
 
