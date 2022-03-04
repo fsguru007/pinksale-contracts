@@ -76,6 +76,10 @@ contract Presale is Ownable {
     uint tokenDecimals;
     address public pcsRouter = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
     mapping(address => bool) public whitelisted;
+
+    uint claimedTeamVesting = 0;
+    bool finished = false;
+    uint finishedTime = 0;
     
     PresaleData presaleData;
 
@@ -128,7 +132,6 @@ contract Presale is Ownable {
 
         collected += contributeAmount;
 
-        // payable(address(this)).transfer(contributeAmount);
         if (returnAmount > 0) {
             payable(user).transfer(returnAmount);
         }
@@ -165,6 +168,9 @@ contract Presale is Ownable {
         payable(presaleData.creator).transfer(collected - bnbAmountToLock - feeBnb);
         
         IERC20(presaleData.token).transferFrom(address(this), presaleData.feeAddress, collected * presaleData.presale_rate * presaleData.feeTokenPortion / 10**(22-tokenDecimals) );
+
+        finished = true;
+        finishedTime = block.timestamp;
     }
 
     function lockLP(uint bnbAmount) internal {
@@ -199,7 +205,26 @@ contract Presale is Ownable {
         }
     }
 
-    function claimTeamVesting() external {
+    function claimTeamVesting(address to) external onlyCreator {
+        require (finished, "The presale is not finished");
+        require (claimedTeamVesting < presaleData.teamVestingData.total, "All claimed");
 
+        uint firstReleaseTime = finishedTime + presaleData.teamVestingData.firstReleaseDelay;
+
+        require (block.timestamp >= firstReleaseTime, "You can't claim yet");
+
+        uint claimableAmount = presaleData.teamVestingData.total * presaleData.teamVestingData.firstRelease / 100 + (block.timestamp - firstReleaseTime) / presaleData.teamVestingData.cycle * presaleData.teamVestingData.cycleRelease - claimedTeamVesting;
+
+        if (claimableAmount + claimedTeamVesting > presaleData.teamVestingData.total) {
+            claimableAmount = presaleData.teamVestingData.total - claimedTeamVesting;
+        }
+
+        claimedTeamVesting += claimableAmount;
+
+        IERC20(presaleData.token).transfer(payable(to), claimableAmount);
+    }
+
+    function claimTokens() external {
+        
     }
 }
