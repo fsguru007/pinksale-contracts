@@ -69,7 +69,18 @@ struct PresaleData {
     TeamVesting teamVestingData;
 }
 
-contract Presale is Ownable {
+contract ReentranceGuard {
+    bool private _ENTERED;
+
+    modifier noReentrance() {
+        require (!_ENTERED, "No re-entrance");
+        _ENTERED = true;
+        _;
+        _ENTERED = false;
+    }
+}
+
+contract Presale is Ownable, ReentranceGuard {
 
     mapping(address => uint) public contributes;
     uint public collected = 0;
@@ -115,6 +126,10 @@ contract Presale is Ownable {
         require (block.timestamp >= presaleData.start_time, "Presale is not started yet");
         require (block.timestamp <= presaleData.end_time, "Presale already ended");
 
+        if (presaleData.whitelist) {
+            require (whitelisted[msg.sender], "You're not whitelisted");
+        }
+
         uint left = presaleData.hardcap - collected;
 
         uint contributeAmount = amount;
@@ -140,7 +155,7 @@ contract Presale is Ownable {
         contributes[user] = contributeAmount;
     }
 
-    function claim() external {
+    function claim() external noReentrance {
         require (contributes[msg.sender] > 0, "You have no contributes");
         require (finished, "The presale is still active");
         require (collected >= presaleData.hardcap, "The presale failed");
@@ -168,7 +183,7 @@ contract Presale is Ownable {
         }
     }
 
-    function withdraw() external {
+    function withdraw() external noReentrance {
         require (contributes[msg.sender] > 0, "You have not contributed");
         require (block.timestamp >= presaleData.end_time, "The presale is still active");
         require (collected < presaleData.hardcap, "You cannot withdraw now. Claim your tokens instead");
@@ -218,11 +233,15 @@ contract Presale is Ownable {
         return presaleData;
     }
 
-    function whitelistUsers(address[] calldata users, bool _whitelisted) external {
+    function whitelistUsers(address[] calldata users, bool _whitelisted) external onlyCreator {
         uint i;
         for (i = 0; i < users.length; i+=1) {
             whitelisted[users[i]] = _whitelisted;
         }
+    }
+
+    function toggleWhitelist(bool _whitelist) external onlyCreator {
+        presaleData.whitelist = _whitelist;
     }
 
     function claimTeamVesting(address to) external onlyCreator {
