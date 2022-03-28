@@ -24,21 +24,21 @@ interface IPancakeFactory {
 }
 
 interface ILauncher {
-    function routers(uint _id) external view returns (address);
+    function emitFinished(address, address, uint, uint) external;
 }
 
 struct PresaleVesting {
-    uint8 firstRelease;
-    uint8 cycle;
-    uint8 cycleRelease;
+    uint firstRelease;
+    uint cycle;
+    uint cycleRelease;
 }
 
 struct TeamVesting {
     uint total;
-    uint8 firstReleaseDelay;
-    uint8 firstRelease;
-    uint8 cycle;
-    uint8 cycleRelease;
+    uint firstReleaseDelay;
+    uint firstRelease;
+    uint cycle;
+    uint cycleRelease;
 }
 
 struct PresaleData {
@@ -95,11 +95,14 @@ contract Presale is Ownable, ReentranceGuard {
     
     PresaleData presaleData;
 
+    ILauncher launcher;
+
     constructor(PresaleData memory _presale, address _router) {
         presaleData = _presale;
         pcsRouter = _router;
         
         tokenDecimals = IERC20Metadata(presaleData.token).decimals();
+        launcher = ILauncher(msg.sender);
     }
 
     modifier onlyCreator() {
@@ -206,6 +209,8 @@ contract Presale is Ownable, ReentranceGuard {
 
         finished = true;
         finishedTime = block.timestamp;
+
+        launcher.emitFinished(address(this), presaleData.token, collected, presaleData.softcap);
     }
 
     function lockLP(uint bnbAmount) internal {

@@ -856,8 +856,8 @@ contract BEP20 is Context, IBEP20, Ownable {
     }
 }
 
-// HertzToken with Governance.
-contract HertzToken is BEP20('Hertz Token', 'HTZ') {
+// TestToken with Governance.
+contract TestToken is BEP20('Test Token', 'TST') {
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
@@ -966,9 +966,9 @@ contract HertzToken is BEP20('Hertz Token', 'HTZ') {
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "Hertz::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "Hertz::delegateBySig: invalid nonce");
-        require(now <= expiry, "Hertz::delegateBySig: signature expired");
+        require(signatory != address(0), "Test::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "Test::delegateBySig: invalid nonce");
+        require(now <= expiry, "Test::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -998,7 +998,7 @@ contract HertzToken is BEP20('Hertz Token', 'HTZ') {
         view
         returns (uint256)
     {
-        require(blockNumber < block.number, "Hertz::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "Test::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -1035,7 +1035,7 @@ contract HertzToken is BEP20('Hertz Token', 'HTZ') {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying Hertzs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying Tests (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -1071,7 +1071,7 @@ contract HertzToken is BEP20('Hertz Token', 'HTZ') {
     )
         internal
     {
-        uint32 blockNumber = safe32(block.number, "Hertz::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "Test::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;

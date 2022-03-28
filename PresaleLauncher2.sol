@@ -8,9 +8,9 @@ import "Presale.sol";
 
 contract Launcher is Ownable {
 
-    address[] public presales;
     mapping(address => address[]) public ownerToPresales;
     mapping(address => address) public tokenToPresale;
+    mapping(address => bool) public isPresale;
 
     uint public feeAmount = 75e16;
     uint public tokenFee = 150;
@@ -35,7 +35,7 @@ contract Launcher is Ownable {
         require (_presaleData.end_time >= _presaleData.start_time + minPresaleTime, "Too short presale time");
         require (_presaleData.end_time <= _presaleData.start_time + maxPresaleTime, "Too long presale time");
         require (_presaleData.unlock_time >= _presaleData.end_time, "Invalid unlock time");
-        require (_presaleData.router != address(0), "Invalid router index");
+        require (routers[_presaleData.router] != address(0), "Invalid router index");
         
         _presaleData.creator = msg.sender;
 
@@ -55,6 +55,8 @@ contract Launcher is Ownable {
         if (feeAmount < msg.value) {
             payable(msg.sender).transfer(msg.value - feeAmount);
         }
+
+        isPresale[presale_address] = true;
         
         emit PresaleCreated(msg.sender, token, presale_address, _presaleData.start_time, _presaleData.end_time);
     }
@@ -84,5 +86,14 @@ contract Launcher is Ownable {
     
     function addRouter(address _router) external {
         routers.add(_router);
+    }
+
+    function emitFinished(address _presale, address _token, uint _raised, uint _softcap) external {
+        require (isPresale(_presale) && msg.sender == _presale, "Invalid access");
+        emit PresaleFinished(_presale, _token, _raised, _softcap);
+    }
+
+    function ownerPresales(address owner) external returns (address[] calldata) {
+        return ownerToPresales[owner];
     }
 }

@@ -380,17 +380,17 @@ interface ILauncher {
 }
 
 struct PresaleVesting {
-    uint8 firstRelease;
-    uint8 cycle;
-    uint8 cycleRelease;
+    uint firstRelease;
+    uint cycle;
+    uint cycleRelease;
 }
 
 struct TeamVesting {
     uint total;
-    uint8 firstReleaseDelay;
-    uint8 firstRelease;
-    uint8 cycle;
-    uint8 cycleRelease;
+    uint firstReleaseDelay;
+    uint firstRelease;
+    uint cycle;
+    uint cycleRelease;
 }
 
 struct PresaleData {
