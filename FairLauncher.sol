@@ -8,7 +8,7 @@ import "FairLaunch.sol";
 
 contract Launcher is Ownable {
 
-    mapping(address => address[]) public ownerToLaunchs;
+    mapping(address => address[]) public ownerToLaunches;
     mapping(address => address) public tokenToLaunch;
     mapping(address => bool) public isLaunch;
 
@@ -26,7 +26,7 @@ contract Launcher is Ownable {
     
     constructor(address _router) Ownable() {
         feeTo = msg.sender;
-        routers.add(_router);
+        routers.push(_router);
     }
 
     function createLaunch(FairlaunchData memory _launchData) payable external {
@@ -39,30 +39,30 @@ contract Launcher is Ownable {
         
         _launchData.creator = msg.sender;
 
-        _launchData.tokenFee = tokenFee;
-        _launchData.bnbFee = bnbFee;
+        _launchData.feeTokenPortion = tokenFee;
+        _launchData.feeBnbPortion = bnbFee;
 
-        FairLaunch launch = new Launch(_launchData, routers[_launchData.router]);
+        FairLaunch launch = new FairLaunch(_launchData, routers[_launchData.router]);
         address launch_address = address(launch);
 
-        ownerToLaunchs[msg.sender].push(launch_address);
+        ownerToLaunches[msg.sender].push(launch_address);
         tokenToLaunch[_launchData.token] = launch_address;
         
         uint tokenAmount = 0;
     
         tokenAmount = _calcTokenAmount(_launchData);
     
-        IERC20(token).transferFrom(msg.sender, launch_address, tokenAmount);
+        IERC20(_launchData.token).transferFrom(msg.sender, launch_address, tokenAmount);
 
         payable(feeTo).transfer(feeAmount);
         if (feeAmount < msg.value) {
             payable(msg.sender).transfer(msg.value - feeAmount);
         }
         
-        emit LaunchCreated(msg.sender, token, launch_address, _launchData.start_time, _launchData.end_time);
+        emit LaunchCreated(msg.sender, _launchData.token, launch_address, _launchData.start_time, _launchData.end_time);
     }
     
-    function _calcTokenAmount(LaunchData memory launchData) view internal returns(uint) {
+    function _calcTokenAmount(FairlaunchData memory launchData) view internal returns(uint) {
 
         uint feeTokenAmount = launchData.tokenAmount * tokenFee / 10000;
         
@@ -84,10 +84,14 @@ contract Launcher is Ownable {
     }
     
     function addRouter(address _router) external {
-        routers.add(_router);
+        routers.push(_router);
     }
 
     function emitFinished(address _launch, address _token, uint _softcap) external {
         emit LaunchFinished(_launch, _token, _softcap);
+    }
+
+    function ownerLaunches(address owner) external view returns (address[] memory) {
+        return ownerToLaunches[owner];
     }
 }
