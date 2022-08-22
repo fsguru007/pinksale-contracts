@@ -624,9 +624,9 @@ pragma solidity ^0.8.0;
 
 contract Launcher is Ownable {
 
-    address[] public presales;
     mapping(address => address[]) public ownerToPresales;
     mapping(address => address) public tokenToPresale;
+    mapping(address => bool) public isPresale;
 
     uint public feeAmount = 75e16;
     uint public tokenFee = 150;
@@ -637,7 +637,7 @@ contract Launcher is Ownable {
 
     address[] public routers;
 
-    event PresaleCreated(address owner, address token, address presale, uint start, uint end);
+    event PresaleCreated(address owner, address token, address presale, uint start, uint end, uint hardcap, uint softcap, uint lpPercent);
     event PresaleFinished(address presale, address token, uint raised, uint softcap);
     
     constructor(address _router) Ownable() {
@@ -671,8 +671,10 @@ contract Launcher is Ownable {
         if (feeAmount < msg.value) {
             payable(msg.sender).transfer(msg.value - feeAmount);
         }
+
+        isPresale[presale_address] = true;
         
-        emit PresaleCreated(msg.sender, _presaleData.token, presale_address, _presaleData.start_time, _presaleData.end_time);
+        emit PresaleCreated(msg.sender, _presaleData.token, presale_address, _presaleData.start_time, _presaleData.end_time, _presaleData.hardcap, _presaleData.softcap, _presaleData.pcs_liquidity);
     }
     
     function _calcTokenAmount(PresaleData memory presaleData) view internal returns(uint) {
@@ -700,5 +702,14 @@ contract Launcher is Ownable {
     
     function addRouter(address _router) external {
         routers.push(_router);
+    }
+
+    function emitFinished(address _presale, address _token, uint _raised, uint _softcap) external {
+        require (isPresale[_presale] && msg.sender == _presale, "Invalid access");
+        emit PresaleFinished(_presale, _token, _raised, _softcap);
+    }
+
+    function ownerPresales(address owner) external view returns (address[] memory) {
+        return ownerToPresales[owner];
     }
 }
