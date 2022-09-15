@@ -23,6 +23,7 @@ contract Launcher is Ownable {
 
     event PresaleCreated(address owner, address token, address presale, uint start, uint end);
     event PresaleFinished(address presale, address token, uint raised, uint softcap);
+    event PresaleCancelled(address presale);
     
     constructor(address _router) Ownable() {
         feeTo = msg.sender;
@@ -91,6 +92,11 @@ contract Launcher is Ownable {
     function emitFinished(address _presale, address _token, uint _raised, uint _softcap) external {
         require (isPresale(_presale) && msg.sender == _presale, "Invalid access");
         emit PresaleFinished(_presale, _token, _raised, _softcap);
+    }
+
+    function emitCancelled(address _presale) external {
+        require (isPresale(_presale) && msg.sender == _presale, "Invalid access");
+        emit PresaleCancelled(_presale);
     }
 
     function ownerPresales(address owner) external returns (address[] calldata) {
